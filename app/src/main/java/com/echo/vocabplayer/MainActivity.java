@@ -136,10 +136,19 @@ public class MainActivity extends Activity implements TextToSpeech.OnInitListene
 
     @Override public void onInit(int status) {
         ttsReady=status==TextToSpeech.SUCCESS;
-        if(!ttsReady) Toast.makeText(this,"手机语音服务初始化失败",Toast.LENGTH_LONG).show();
-        tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
-            public void onStart(String id){} public void onError(String id){ handler.post(()->stopPlayback("发音失败，请检查手机语音设置")); }
-            public void onDone(String id){ int token; try{token=Integer.parseInt(id.split("-")[0]);}catch(Exception e){return;} handler.post(()->{if(token==runToken&&playing){segmentIndex++;playSegment(token);}}); }
+        if(!ttsReady) {
+            Toast.makeText(this,"手机语音服务初始化失败",Toast.LENGTH_LONG).show();
+            return;
+        }
+        handler.post(() -> {
+            if (tts == null) {
+                ttsReady = false;
+                return;
+            }
+            tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
+                public void onStart(String id){} public void onError(String id){ handler.post(()->stopPlayback("发音失败，请检查手机语音设置")); }
+                public void onDone(String id){ int token; try{token=Integer.parseInt(id.split("-")[0]);}catch(Exception e){return;} handler.post(()->{if(token==runToken&&playing){segmentIndex++;playSegment(token);}}); }
+            });
         });
     }
 
