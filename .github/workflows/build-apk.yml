@@ -24,7 +24,7 @@ jobs:
         with:
           gradle-version: '8.11.1'
       - run: gradle :app:assembleDebug --stacktrace
-      - name: Install and launch in Android emulator
+      - name: Install and diagnose in Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
@@ -34,13 +34,20 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: |
             adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb logcat -c
+            adb shell am force-stop com.echo.vocabplayer
             adb shell am start -W -n com.echo.vocabplayer/.MainActivity | tee launch.txt
-            grep -q "Status: ok" launch.txt
-            sleep 2
-            adb shell uiautomator dump /sdcard/window.xml
-            adb pull /sdcard/window.xml window.xml
+            sleep 3
+            adb shell pidof com.echo.vocabplayer || true
+            adb shell dumpsys activity activities | grep -E "mResumedActivity|com.echo.vocabplayer" || true
+            adb shell uiautomator dump /sdcard/window.xml || true
+            adb pull /sdcard/window.xml window.xml || true
+            cat window.xml || true
+            adb logcat -d -v brief '*:E' | tail -200
+            adb shell pidof com.echo.vocabplayer
             grep -q "英语单词播放器" window.xml
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: vocab-player-apk-tested
           path: app/build/outputs/apk/debug/app-debug.apk
