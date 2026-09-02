@@ -7,6 +7,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: apk-test
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -23,15 +27,16 @@ jobs:
       - name: Install and launch in Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 29
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_2
           disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: |
             adb install -r app/build/outputs/apk/debug/app-debug.apk
             adb shell am start -W -n com.echo.vocabplayer/.MainActivity | tee launch.txt
             grep -q "Status: ok" launch.txt
-            sleep 3
+            sleep 2
             adb shell uiautomator dump /sdcard/window.xml
             adb pull /sdcard/window.xml window.xml
             grep -q "英语单词播放器" window.xml
