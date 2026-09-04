@@ -16,7 +16,7 @@ public class PlaybackService extends Service {
     private static final String CHANNEL="vocab_playback"; private static final int NOTIFICATION_ID=17;
     private final Handler handler=new Handler(Looper.getMainLooper());
     private ArrayList<AppData.Word> words=new ArrayList<>();
-    private TextToSpeech tts; private boolean ready=false,playing=false,pendingStart=false,inGap=false,retriedOffline=false;
+    private TextToSpeech tts; private boolean ready=false,playing=false,pendingStart=false,inGap=false,retriedOffline=false,testMode=false;
     private int current=0,segment=0,token=0,repeat=3,gapMs=800; private String phase="尚未开始",accent="US",gender="female",quality="natural";
     private android.os.PowerManager.WakeLock wakeLock; private AudioManager audioManager; private AudioFocusRequest focusRequest;
 
@@ -24,7 +24,7 @@ public class PlaybackService extends Service {
         android.os.PowerManager pm=(android.os.PowerManager)getSystemService(POWER_SERVICE);wakeLock=pm.newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK,"VocabPlayer:Playback");wakeLock.setReferenceCounted(false);
         tts=new TextToSpeech(this,status->handler.post(()->finishTtsInit(status)));
     }
-    private void finishTtsInit(int status){ready=status==TextToSpeech.SUCCESS&&tts!=null;if(!ready){stopPlayback("手机语音服务初始化失败",true);return;}
+    private void finishTtsInit(int status){ready=status==TextToSpeech.SUCCESS&&tts!=null;if(!ready){if(testMode)return;stopPlayback("手机语音服务初始化失败",true);return;}
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){public void onStart(String id){}public void onDone(String id){onUtteranceFinished(id,false);}public void onError(String id){onUtteranceFinished(id,true);}public void onError(String id,int code){onUtteranceFinished(id,true);}});
         if(pendingStart){pendingStart=false;startAt(current);}
     }
@@ -33,7 +33,7 @@ public class PlaybackService extends Service {
     });}
 
     @Override public int onStartCommand(Intent intent,int flags,int startId){String action=intent==null?null:intent.getAction();if(action==null)return START_STICKY;
-        if(ACTION_START.equals(action)){current=Math.max(0,intent.getIntExtra(EXTRA_INDEX,0));loadSettings();words=AppData.loadWords(this);startForeground(NOTIFICATION_ID,notification());if(BuildConfig.DEBUG&&intent.getBooleanExtra(EXTRA_TEST_MODE,false)){playing=true;phase="后台播放测试";acquirePlaybackResources();publish();return START_STICKY;}if(ready)startAt(current);else pendingStart=true;}
+        if(ACTION_START.equals(action)){current=Math.max(0,intent.getIntExtra(EXTRA_INDEX,0));loadSettings();words=AppData.loadWords(this);startForeground(NOTIFICATION_ID,notification());if(BuildConfig.DEBUG&&intent.getBooleanExtra(EXTRA_TEST_MODE,false)){testMode=true;playing=true;phase="后台播放测试";acquirePlaybackResources();publish();return START_STICKY;}if(ready)startAt(current);else pendingStart=true;}
         else if(ACTION_TOGGLE.equals(action)){if(playing)pause();else{loadSettings();words=AppData.loadWords(this);startForeground(NOTIFICATION_ID,notification());if(ready)startAt(current);else pendingStart=true;}}
         else if(ACTION_NEXT.equals(action)){words=AppData.loadWords(this);if(!words.isEmpty())startAt(Math.min(words.size()-1,current+1));}
         else if(ACTION_PREVIOUS.equals(action)){words=AppData.loadWords(this);if(!words.isEmpty())startAt(Math.max(0,current-1));}
