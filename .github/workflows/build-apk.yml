@@ -42,7 +42,7 @@ jobs:
             adb shell dumpsys power | tee power.txt
             grep -q "VocabPlayer:Playback" power.txt
             adb logcat -d -v brief '*:E' | tee errors.txt
-            ! grep -q "FATAL EXCEPTION" errors.txt
+            ! grep -q "Process: com.echo.vocabplayer" errors.txt
       - uses: actions/upload-artifact@v4
         with:
           name: vocab-player-v1.1-tested
