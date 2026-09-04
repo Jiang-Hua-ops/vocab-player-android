@@ -1,27 +1,50 @@
-name: Build Android APK
-
+name: Build and test Android APK
 on:
   push:
-    branches: [main]
+    branches: [main, build-apk]
   pull_request:
     branches: [main]
   workflow_dispatch:
-
+concurrency:
+  group: apk-test-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+        with: {distribution: temurin, java-version: '17'}
       - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.11.1'
+        with: {gradle-version: '8.11.1'}
       - run: gradle :app:assembleDebug --stacktrace
+      - name: Test launch and locked-screen playback service
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: |
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell am start -W -n com.echo.vocabplayer/.MainActivity --ez test_autostart true
+            sleep 4
+            adb shell uiautomator dump /sdcard/window.xml
+            adb pull /sdcard/window.xml window.xml
+            grep -q "英语单词播放器" window.xml
+            adb shell input keyevent 3
+            adb shell input keyevent 26
+            sleep 4
+            adb shell pidof com.echo.vocabplayer
+            adb shell dumpsys activity services com.echo.vocabplayer | tee services.txt
+            grep -q "PlaybackService" services.txt
+            adb shell dumpsys power | tee power.txt
+            grep -q "VocabPlayer:Playback" power.txt
+            adb logcat -d -v brief '*:E' | tee errors.txt
+            ! grep -q "Process: com.echo.vocabplayer" errors.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: vocab-player-apk
+          name: vocab-player-v1.1-tested
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
