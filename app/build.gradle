@@ -1,1 +1,14 @@
-cGx1Z2lucyB7IGlkICdjb20uYW5kcm9pZC5hcHBsaWNhdGlvbicgfQoKYW5kcm9pZCB7CiAgICBuYW1lc3BhY2UgJ2NvbS5lY2hvLnZvY2FicGxheWVyJwogICAgY29tcGlsZVNkayAzNQogICAgYnVpbGRGZWF0dXJlcyB7IGJ1aWxkQ29uZmlnIHRydWUgfQogICAgZGVmYXVsdENvbmZpZyB7CiAgICAgICAgYXBwbGljYXRpb25JZCAnY29tLmVjaG8udm9jYWJwbGF5ZXInCiAgICAgICAgbWluU2RrIDIzCiAgICAgICAgdGFyZ2V0U2RrIDM1CiAgICAgICAgdmVyc2lvbkNvZGUgMgogICAgICAgIHZlcnNpb25OYW1lICcxLjEuMCcKICAgIH0KfQo=
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.echo.vocabplayer'
+    compileSdk 35
+    buildFeatures { buildConfig true }
+    defaultConfig {
+        applicationId 'com.echo.vocabplayer'
+        minSdk 23
+        targetSdk 35
+        versionCode 2
+        versionName '1.1.0'
+    }
+}
